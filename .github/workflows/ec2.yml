@@ -20,14 +20,14 @@ jobs:
         with:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ vars.EC2_USER }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
           TARGET: jomacs
 
       - name: Deploy to EC2 server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST_DNS }}
-          username: ${{ vars.EC2_USER }}
+          username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             sudo apt-get -y update
@@ -47,21 +47,23 @@ jobs:
 
 
      
+     ##########################################################################################
+     # Send Slack Notification #
+     ##########################################################################################
+
     # ✅ Send Slack Notification on Success
       - name: Send Slack Notification (Success)
         if: success()
         run: |
-          response=$(curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n✅ *Workflow Completed Successfully!* 🎉\n🚀 *Repository:* `${{ github.repository }}`\n🔗 *Commit:* <${{ github.event.head_commit.url }}|View Commit>\n🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩"
-          }' ${{ secrets.SLACK_WEBHOOK_URL }} 2>&1)
-          echo "Slack Response: $response"
-
-
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          MESSAGE="🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩\n🎉 *EC2 Deployment Successful!* ✅\n\n📋 *Deployment Details:*\n🚀 *Repository:* \`${{ github.repository }}\`\n👤 *Actor:* ${{ github.actor }}\n🔗 *Commit:* <${{ github.event.head_commit.url }}|$(echo ${{ github.sha }} | cut -c1-7)>\n💬 *Message:* ${{ github.event.head_commit.message }}\n🖥️ *Server:* ${{ secrets.HOST_DNS }}\n\n🔗 *Quick Links:*\n📊 *GitHub Actions:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow>\n⏰ *Deployed at:* ${TIMESTAMP}\n\n🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩"
+          curl -X POST -H 'Content-type: application/json' -d "{\"text\": \"$MESSAGE\"}" ${{ secrets.SLACK_WEBHOOK_URL }}
+    
+    
       # ❌ Send Slack Notification on Failure
       - name: Send Slack Notification (Failure)
         if: failure()
         run: |
-          response=$(curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥\n❌ *Workflow Failed!* 🚨\n💥 *Repository:* `${{ github.repository }}`\n🔗 *Commit:* <${{ github.event.head_commit.url }}|View Commit>\n⚠️ Please check the logs for details.\n🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥"
-          }' ${{ secrets.SLACK_WEBHOOK_URL }} 2>&1)
-          echo "Slack Response: $response"
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          MESSAGE="🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥\n🚨 *EC2 Deployment Failed!* ❌\n\n📋 *Failure Details:*\n💥 *Repository:* \`${{ github.repository }}\`\n👤 *Actor:* ${{ github.actor }}\n🔗 *Commit:* <${{ github.event.head_commit.url }}|$(echo ${{ github.sha }} | cut -c1-7)>\n💬 *Message:* ${{ github.event.head_commit.message }}\n🖥️ *Server:* ${{ secrets.HOST_DNS }}\n\n🔍 *Troubleshooting:*\n📊 *View Logs:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions Workflow>\n⏰ *Failed at:* ${TIMESTAMP}\n⚠️ Please check the deployment logs for detailed error information.\n\n🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥"
+          curl -X POST -H 'Content-type: application/json' -d "{\"text\": \"$MESSAGE\"}" ${{ secrets.SLACK_WEBHOOK_URL }}
