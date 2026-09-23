@@ -20,7 +20,7 @@ jobs:
         with:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.EC2_USER1 }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
           TARGET: jomacs
 
       - name: Deploy to EC2 server
